@@ -27,17 +27,13 @@ Example from your computer after SSH is set up:
 ssh -p 8022 <termux_user>@<phone_ip>
 ```
 
-### 2. Copy this repo to the phone and run setup
+### 2. Clone this repo on the phone and run setup
 
-From your **computer** (in a new terminal, not inside the SSH session), copy the PhoneClaw setup to the phone. Replace `<termux_user>`, `<phone_ip>`, and the path to this repo:
-
-```bash
-scp -r -P 8022 /path/to/PhoneClaw <termux_user>@<phone_ip>:~/phoneclaw-setup
-```
-
-Then in your **SSH session to the phone**:
+In your **SSH session to the phone**, clone the repo and run setup:
 
 ```bash
+pkg install -y git
+git clone https://github.com/tjansn/PhoneClaw ~/phoneclaw-setup
 cd ~/phoneclaw-setup
 chmod +x setup_claw.sh update_claw.sh scripts/*.sh
 ./setup_claw.sh

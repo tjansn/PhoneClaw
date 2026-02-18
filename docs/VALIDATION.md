@@ -6,7 +6,7 @@ Run these on a real device (Termux on Android) before tagging v2 release. Ensure
 
 - [ ] Install Termux and Termux:API from F-Droid.
 - [ ] Set up remote access (SSH or Tailscale) per docs/remote-access.md; from computer, SSH into the phone.
-- [ ] From computer, copy repo to phone (e.g. `scp -r -P 8022 /path/to/PhoneClaw user@phone:~/phoneclaw-setup`); in SSH session run `cd ~/phoneclaw-setup && chmod +x setup_claw.sh update_claw.sh scripts/*.sh && ./setup_claw.sh`.
+- [ ] From the SSH session on the phone, clone the repo and run setup: `pkg install -y git && git clone https://github.com/tjansn/PhoneClaw ~/phoneclaw-setup && cd ~/phoneclaw-setup && chmod +x setup_claw.sh update_claw.sh scripts/*.sh && ./setup_claw.sh`.
 - [ ] Setup completes without error; post-install message shows "openclaw onboard" and "./scripts/start_claw.sh".
 - [ ] Run `openclaw onboard`; when asked for daemon/service, choose No.
 - [ ] Run `source ~/.bashrc` then `./scripts/start_claw.sh`.
