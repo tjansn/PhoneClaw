@@ -2,13 +2,17 @@
 
 These are not required for the default OpenClaw Android setup.
 
-## LAN access to the Dashboard
+## Access the Dashboard from your computer (safer default)
 
-By default the gateway binds to localhost. To access the UI from another device on the same Wi‑Fi (e.g. `http://<phone-ip>:18789`), set in your OpenClaw config:
+Keep the gateway on localhost and forward the Dashboard port over SSH instead of exposing it on the LAN.
 
-- `gateway.bind` to `lan` (so the gateway listens on `0.0.0.0`).
+From your computer:
 
-Config is typically under your home directory or where `openclaw onboard` wrote it (e.g. `openclaw.json`).
+```bash
+ssh -L 18789:127.0.0.1:18789 -p 8022 <termux_user>@<phone_ip>
+```
+
+Then open `http://localhost:18789` in your computer browser.
 
 ## Termux:GUI and screen overlay
 

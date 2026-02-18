@@ -64,6 +64,18 @@ With [Tailscale](https://tailscale.com) on both the phone and your computer, you
 
 ---
 
+## Access the Dashboard from your computer (safer default)
+
+After you SSH into the phone, keep OpenClaw bound to localhost and forward the Dashboard port over SSH:
+
+```bash
+ssh -L 18789:127.0.0.1:18789 -p 8022 <termux_username>@<phone_ip_or_tailscale_name>
+```
+
+Then open `http://localhost:18789` on your computer.
+
+---
+
 ## Next step
 
 Once you have a shell on the phone (via SSH or Tailscale), follow the [README](../README.md): copy the setup to the phone, then run `./setup_claw.sh`, `openclaw onboard`, and `./scripts/start_claw.sh` from that session.

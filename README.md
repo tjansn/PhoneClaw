@@ -68,7 +68,13 @@ termux-wake-lock
 ### 4. Use the UI
 
 - On the phone: **http://localhost:18789**
-- From another device on the same network: **http://\<phone-ip\>:18789** (if you set `gateway.bind` to `lan`; see [optional features](docs/optional-features.md)).
+- From your computer (safer default): keep the gateway on localhost and tunnel over SSH:
+
+```bash
+ssh -L 18789:127.0.0.1:18789 -p 8022 <termux_user>@<phone_ip>
+```
+
+Then open **http://localhost:18789** on your computer.
 
 ## Scripts
 
@@ -93,7 +99,7 @@ termux-wake-lock
 - [Prerequisites](docs/prerequisites.md)
 - [Remote access (SSH or Tailscale)](docs/remote-access.md)
 - [Troubleshooting](docs/troubleshooting.md)
-- [Optional features](docs/optional-features.md) (LAN bind, Termux:GUI, reboot)
+- [Optional features](docs/optional-features.md) (Termux:GUI, reboot)
 - [Advanced: Service mode (runit)](docs/advanced-service-mode.md)
 
 ## Credits
