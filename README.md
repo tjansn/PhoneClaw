@@ -24,10 +24,10 @@ Full steps: [Remote access (SSH or Tailscale)](docs/remote-access.md).
 **Find the phone's IP address** — run this in Termux on the phone:
 
 ```bash
-ip -4 -o addr show wlan0 | awk '{print $4}' | cut -d/ -f1
+termux-wifi-connectioninfo | grep -o '"ip":"[^"]*"' | cut -d'"' -f4
 ```
 
-This prints the local Wi‑Fi IP (e.g. `192.168.1.42`). Use it as `<phone_ip>` below. If `wlan0` returns nothing, try `ip -4 -o addr show` to list all interfaces and pick the one on your Wi‑Fi.
+This uses the Termux:API app (already a prerequisite) to query Android directly and prints the Wi‑Fi IP (e.g. `192.168.1.42`). Use it as `<phone_ip>` below.
 
 Then from your computer:
 
