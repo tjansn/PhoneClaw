@@ -21,7 +21,15 @@ On the phone (in Termux), do the minimal setup once: install OpenSSH, start `ssh
 
 Full steps: [Remote access (SSH or Tailscale)](docs/remote-access.md).
 
-Example from your computer after SSH is set up:
+**Find the phone's IP address** — run this in Termux on the phone:
+
+```bash
+ip -4 -o addr show wlan0 | awk '{print $4}' | cut -d/ -f1
+```
+
+This prints the local Wi‑Fi IP (e.g. `192.168.1.42`). Use it as `<phone_ip>` below. If `wlan0` returns nothing, try `ip -4 -o addr show` to list all interfaces and pick the one on your Wi‑Fi.
+
+Then from your computer:
 
 ```bash
 ssh -p 8022 <termux_user>@<phone_ip>
