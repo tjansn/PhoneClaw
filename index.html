@@ -1,0 +1,1615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>I Put an AI Agent on a Phone — PhoneClaw Talk</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=JetBrains+Mono:wght@400;700&family=Inter:wght@300;400;600;700;900&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f1b3d;
+    --bg-deep: #0a1230;
+    --surface: #162450;
+    --surface-light: #1c2d60;
+    --accent: #4ecdc4;
+    --accent-bright: #6ff5ec;
+    --orange: #e8734a;
+    --orange-light: #f4945f;
+    --yellow: #f0c040;
+    --text: #c8daf0;
+    --text-bright: #e8f0ff;
+    --dim: #5a70a0;
+    --grid-line: rgba(78, 205, 196, 0.12);
+    --terminal-bg: #0b1428;
+    --terminal-green: #4ecdc4;
+    --glow-teal: 0 0 40px rgba(78, 205, 196, 0.2);
+    --glow-orange: 0 0 40px rgba(232, 115, 74, 0.2);
+    --pixel: 'Press Start 2P', cursive;
+    --red: #e85d5d;
+  }
+
+  html { font-size: 18px; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', system-ui, sans-serif;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      linear-gradient(var(--grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+    background-size: 60px 60px;
+    opacity: 0.4;
+    pointer-events: none;
+    z-index: 0;
+    mask-image: radial-gradient(ellipse 80% 70% at 50% 50%, black 30%, transparent 70%);
+    -webkit-mask-image: radial-gradient(ellipse 80% 70% at 50% 50%, black 30%, transparent 70%);
+  }
+
+  .deck {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    z-index: 1;
+  }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 3rem 6rem;
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+    pointer-events: none;
+    text-align: center;
+  }
+
+  .slide.active { opacity: 1; transform: translateY(0); pointer-events: auto; }
+  .slide.exit-up { opacity: 0; transform: translateY(-30px); }
+
+  h1 {
+    font-family: var(--pixel);
+    font-size: 2rem;
+    line-height: 1.5;
+    margin-bottom: 1.2rem;
+    color: var(--text-bright);
+    text-shadow: 0 0 30px rgba(78, 205, 196, 0.3);
+  }
+
+  h2 {
+    font-family: var(--pixel);
+    font-size: 1.15rem;
+    line-height: 1.7;
+    margin-bottom: 1rem;
+    color: var(--text-bright);
+    text-shadow: 0 0 20px rgba(78, 205, 196, 0.2);
+  }
+
+  h3 {
+    font-family: var(--pixel);
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 0.8rem;
+    color: var(--orange);
+    text-shadow: 0 0 15px rgba(232, 115, 74, 0.4);
+  }
+
+  p, li {
+    font-size: 1.05rem;
+    line-height: 1.7;
+    color: var(--text);
+  }
+
+  .dim { color: var(--dim); }
+  .accent { color: var(--accent); }
+  .orange { color: var(--orange); }
+  .yellow { color: var(--yellow); }
+  .bold { font-weight: 700; }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+  .pixel { font-family: var(--pixel); }
+
+  .gradient-text {
+    background: linear-gradient(135deg, var(--accent), var(--accent-bright));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .gradient-orange {
+    background: linear-gradient(135deg, var(--orange), var(--yellow));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .subtitle {
+    font-size: 1.1rem;
+    color: var(--dim);
+    max-width: 650px;
+    margin-bottom: 1.5rem;
+  }
+
+  .hero-img {
+    width: 320px;
+    max-width: 70vw;
+    border-radius: 16px;
+    border: 3px solid var(--accent);
+    box-shadow: var(--glow-teal), 0 0 80px rgba(78, 205, 196, 0.1);
+    margin-bottom: 1.2rem;
+  }
+
+  .small-img {
+    width: 160px;
+    border-radius: 10px;
+    border: 2px solid var(--orange);
+    box-shadow: var(--glow-orange);
+    margin-bottom: 1rem;
+  }
+
+  /* -- Terminal -- */
+  .terminal {
+    background: var(--terminal-bg);
+    border: 2px solid var(--surface-light);
+    border-radius: 0;
+    width: 100%;
+    max-width: 720px;
+    text-align: left;
+    box-shadow: var(--glow-teal);
+    overflow: hidden;
+    margin: 1rem 0;
+  }
+
+  .terminal-bar {
+    background: var(--surface);
+    padding: 0.45rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-bottom: 2px solid var(--surface-light);
+  }
+
+  .terminal-dot { width: 10px; height: 10px; border-radius: 0; }
+  .terminal-dot.red { background: var(--orange); }
+  .terminal-dot.yellow { background: var(--yellow); }
+  .terminal-dot.green { background: var(--accent); }
+
+  .terminal-title {
+    font-family: var(--pixel);
+    font-size: 0.45rem;
+    color: var(--dim);
+    margin-left: 0.5rem;
+  }
+
+  .terminal-body {
+    padding: 1rem 1.3rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    line-height: 1.75;
+  }
+
+  .terminal-body .prompt { color: var(--accent); }
+  .terminal-body .cmd { color: var(--text-bright); }
+  .terminal-body .comment { color: #3a5580; }
+  .terminal-body .output { color: #7090b8; }
+  .terminal-body .highlight { color: var(--orange-light); }
+  .terminal-body .err { color: #e85d5d; }
+
+  /* -- Big quote -- */
+  .big-quote {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--text-bright);
+    max-width: 750px;
+    line-height: 1.6;
+    margin: 1rem 0;
+    position: relative;
+    padding-left: 2rem;
+  }
+
+  .big-quote::before {
+    content: '"';
+    position: absolute;
+    left: -0.5rem;
+    top: -0.8rem;
+    font-family: var(--pixel);
+    font-size: 3rem;
+    color: var(--orange);
+    opacity: 0.4;
+  }
+
+  /* -- Flow -- */
+  .flow {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    margin: 1.2rem 0;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .flow-node {
+    background: var(--surface);
+    border: 2px solid var(--surface-light);
+    padding: 0.7rem 1.1rem;
+    font-family: var(--pixel);
+    font-size: 0.5rem;
+    white-space: nowrap;
+    color: var(--text);
+  }
+
+  .flow-node.active-node {
+    border-color: var(--orange);
+    box-shadow: var(--glow-orange);
+    color: var(--orange-light);
+  }
+
+  .flow-node.green-node {
+    border-color: var(--accent);
+    box-shadow: var(--glow-teal);
+    color: var(--accent-bright);
+  }
+
+  .flow-arrow {
+    font-family: var(--pixel);
+    color: var(--accent);
+    font-size: 0.7rem;
+    animation: pulse-arrow 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-arrow {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 1; }
+  }
+
+  /* -- Difficulty meter -- */
+  .difficulty {
+    display: flex;
+    align-items: center;
+    gap: 1.2rem;
+    margin: 1.5rem 0;
+  }
+
+  .difficulty-label {
+    font-family: var(--pixel);
+    font-size: 0.5rem;
+    color: var(--dim);
+    min-width: 100px;
+    text-align: right;
+  }
+
+  .difficulty-bar {
+    width: 400px;
+    max-width: 50vw;
+    height: 24px;
+    background: var(--surface);
+    border: 2px solid var(--surface-light);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .difficulty-fill {
+    height: 100%;
+    transition: width 1s ease;
+    position: relative;
+  }
+
+  .difficulty-fill.pain { background: linear-gradient(90deg, var(--orange), var(--red)); width: 95%; }
+  .difficulty-fill.better { background: linear-gradient(90deg, var(--yellow), var(--orange)); width: 55%; }
+  .difficulty-fill.easy { background: linear-gradient(90deg, var(--accent), var(--accent-bright)); width: 15%; }
+
+  .difficulty-value {
+    font-family: var(--pixel);
+    font-size: 0.45rem;
+    color: var(--text-bright);
+    min-width: 80px;
+  }
+
+  /* -- Autocorrect animation -- */
+  .autocorrect-demo {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+    margin: 1.2rem 0;
+    align-items: center;
+  }
+
+  .ac-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .ac-typed {
+    font-size: 1.1rem;
+    color: var(--text-bright);
+    background: var(--terminal-bg);
+    padding: 0.4rem 0.9rem;
+    border: 2px solid var(--surface-light);
+    min-width: 260px;
+    text-align: left;
+  }
+
+  .ac-arrow {
+    font-family: var(--pixel);
+    color: var(--red);
+    font-size: 0.6rem;
+  }
+
+  .ac-result {
+    font-size: 1.1rem;
+    background: rgba(232, 93, 93, 0.1);
+    border: 2px solid rgba(232, 93, 93, 0.3);
+    padding: 0.4rem 0.9rem;
+    min-width: 200px;
+    text-align: left;
+  }
+
+  .ac-result .wrong { color: var(--red); text-decoration: line-through; font-weight: 700; }
+  .ac-result .correct { color: var(--dim); }
+
+  /* -- Phone visual with heat -- */
+  .phone-heat {
+    width: 140px;
+    height: 240px;
+    border: 3px solid var(--orange);
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: var(--terminal-bg);
+    position: relative;
+    animation: phone-glow 2s ease-in-out infinite;
+  }
+
+  @keyframes phone-glow {
+    0%, 100% { box-shadow: 0 0 20px rgba(232, 115, 74, 0.3); }
+    50% { box-shadow: 0 0 60px rgba(232, 115, 74, 0.6), 0 0 100px rgba(232, 93, 93, 0.2); }
+  }
+
+  .phone-heat::before {
+    content: '';
+    position: absolute;
+    top: 8px;
+    width: 28px;
+    height: 4px;
+    background: var(--surface-light);
+  }
+
+  .phone-heat .temp {
+    font-family: var(--pixel);
+    font-size: 1.8rem;
+    color: var(--orange-light);
+    animation: temp-pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes temp-pulse {
+    0%, 100% { color: var(--orange); }
+    50% { color: var(--red); }
+  }
+
+  .phone-heat .temp-label {
+    font-family: var(--pixel);
+    font-size: 0.4rem;
+    color: var(--dim);
+    margin-top: 0.5rem;
+  }
+
+  .heat-waves {
+    position: absolute;
+    top: -30px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 8px;
+  }
+
+  .heat-wave {
+    width: 3px;
+    height: 20px;
+    background: var(--orange);
+    border-radius: 2px;
+    opacity: 0;
+    animation: wave-rise 1.5s ease-out infinite;
+  }
+
+  .heat-wave:nth-child(2) { animation-delay: 0.3s; }
+  .heat-wave:nth-child(3) { animation-delay: 0.6s; }
+  .heat-wave:nth-child(4) { animation-delay: 0.2s; }
+  .heat-wave:nth-child(5) { animation-delay: 0.5s; }
+
+  @keyframes wave-rise {
+    0% { opacity: 0.8; transform: translateY(0) scaleY(1); }
+    100% { opacity: 0; transform: translateY(-25px) scaleY(0.3); }
+  }
+
+  /* -- Checklist -- */
+  .checklist {
+    list-style: none;
+    text-align: left;
+    max-width: 600px;
+    width: 100%;
+  }
+
+  .checklist li {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    margin-bottom: 0.6rem;
+    font-size: 0.95rem;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text);
+  }
+
+  .check-x {
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    border: 2px solid var(--red);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--pixel);
+    font-size: 0.5rem;
+    color: var(--red);
+  }
+
+  .check-ok {
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    border: 2px solid var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--pixel);
+    font-size: 0.5rem;
+    color: var(--accent);
+  }
+
+  /* -- Doctor output -- */
+  .doctor-output {
+    text-align: left;
+    max-width: 600px;
+    width: 100%;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    line-height: 2;
+  }
+
+  .doc-pass { color: var(--accent); }
+  .doc-warn { color: var(--yellow); }
+  .doc-fail { color: var(--red); }
+  .doc-label { color: var(--text); }
+
+  /* -- Coffee cup -- */
+  .coffee-scene {
+    display: flex;
+    align-items: flex-end;
+    gap: 3rem;
+    margin: 1.5rem 0;
+  }
+
+  .coffee-cup {
+    position: relative;
+    width: 80px;
+    height: 65px;
+    background: var(--surface);
+    border: 3px solid var(--orange);
+    border-radius: 0 0 12px 12px;
+  }
+
+  .coffee-cup::after {
+    content: '';
+    position: absolute;
+    right: -20px;
+    top: 10px;
+    width: 18px;
+    height: 30px;
+    border: 3px solid var(--orange);
+    border-left: none;
+    border-radius: 0 8px 8px 0;
+  }
+
+  .coffee-steam {
+    position: absolute;
+    top: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 6px;
+  }
+
+  .steam {
+    width: 2px;
+    height: 18px;
+    background: var(--dim);
+    border-radius: 2px;
+    opacity: 0;
+    animation: steam-rise 2s ease-out infinite;
+  }
+
+  .steam:nth-child(2) { animation-delay: 0.4s; }
+  .steam:nth-child(3) { animation-delay: 0.8s; }
+
+  @keyframes steam-rise {
+    0% { opacity: 0.6; transform: translateY(0) scaleX(1); }
+    100% { opacity: 0; transform: translateY(-20px) scaleX(2); }
+  }
+
+  /* -- Hardware grid -- */
+  .hw-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    max-width: 700px;
+    width: 100%;
+    margin: 1rem 0;
+  }
+
+  .hw-item {
+    background: var(--surface);
+    border: 2px solid var(--surface-light);
+    padding: 1rem 0.8rem;
+    text-align: center;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .hw-item:hover {
+    border-color: var(--accent);
+    box-shadow: var(--glow-teal);
+  }
+
+  .hw-icon { font-size: 1.6rem; margin-bottom: 0.4rem; display: block; }
+  .hw-name {
+    font-family: var(--pixel);
+    font-size: 0.4rem;
+    color: var(--text-bright);
+    margin-bottom: 0.3rem;
+  }
+  .hw-use {
+    font-size: 0.75rem;
+    color: var(--dim);
+    line-height: 1.4;
+  }
+
+  /* -- CTA box -- */
+  .cta-box {
+    background: linear-gradient(135deg, rgba(78,205,196,0.08), rgba(232,115,74,0.08));
+    border: 2px solid rgba(78,205,196,0.2);
+    padding: 1.8rem 2.2rem;
+    max-width: 700px;
+    margin-top: 1rem;
+  }
+
+  .cta-box p { font-size: 1.05rem; line-height: 1.8; }
+
+  /* -- Two col -- */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    width: 100%;
+    max-width: 920px;
+    text-align: left;
+    align-items: center;
+  }
+
+  .two-col .terminal { max-width: 100%; }
+
+  /* -- Timeline visual -- */
+  .timeline-story {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    margin: 1.5rem 0;
+    max-width: 800px;
+    width: 100%;
+  }
+
+  .timeline-node {
+    flex: 1;
+    text-align: center;
+    padding: 1rem 0.8rem;
+    position: relative;
+    border-top: 4px solid var(--surface-light);
+  }
+
+  .timeline-node::before {
+    content: '';
+    position: absolute;
+    top: -8px;
+    left: 50%;
+    width: 12px;
+    height: 12px;
+    background: var(--surface-light);
+    transform: translateX(-50%);
+  }
+
+  .timeline-node.past { border-top-color: var(--red); }
+  .timeline-node.past::before { background: var(--red); }
+  .timeline-node.mid { border-top-color: var(--yellow); }
+  .timeline-node.mid::before { background: var(--yellow); }
+  .timeline-node.now { border-top-color: var(--accent); }
+  .timeline-node.now::before { background: var(--accent); box-shadow: 0 0 12px rgba(78,205,196,0.6); }
+
+  .tl-label {
+    font-family: var(--pixel);
+    font-size: 0.45rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .tl-time {
+    font-size: 0.85rem;
+    color: var(--dim);
+  }
+
+  .tl-detail {
+    font-size: 0.8rem;
+    color: var(--text);
+    margin-top: 0.3rem;
+  }
+
+  /* -- Connection visual -- */
+  .connection-line {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    margin: 1.2rem 0;
+  }
+
+  .laptop-icon { font-size: 3.5rem; }
+
+  .ssh-line {
+    flex: 1;
+    height: 3px;
+    background: repeating-linear-gradient(90deg, var(--accent) 0, var(--accent) 8px, transparent 8px, transparent 16px);
+    position: relative;
+    max-width: 180px;
+    animation: dash-flow 1s linear infinite;
+    box-shadow: 0 0 8px rgba(78, 205, 196, 0.4);
+  }
+
+  @keyframes dash-flow { to { background-position: 16px 0; } }
+
+  .ssh-label {
+    position: absolute;
+    top: -22px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: var(--pixel);
+    font-size: 0.45rem;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+
+  .phone-icon {
+    width: 100px;
+    height: 180px;
+    border: 3px solid var(--accent);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--terminal-bg);
+    box-shadow: var(--glow-teal);
+    position: relative;
+  }
+
+  .phone-icon::before {
+    content: '';
+    position: absolute;
+    top: 8px;
+    width: 28px;
+    height: 4px;
+    background: var(--surface-light);
+  }
+
+  .phone-screen {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.42rem;
+    color: var(--terminal-green);
+    text-align: left;
+    padding: 0.6rem;
+    line-height: 1.6;
+  }
+
+  /* -- Misc -- */
+  .progress {
+    position: fixed;
+    bottom: 0; left: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--accent), var(--orange));
+    transition: width 0.5s ease;
+    z-index: 100;
+    box-shadow: 0 0 12px rgba(78, 205, 196, 0.5);
+  }
+
+  .slide-counter {
+    position: fixed;
+    bottom: 1.2rem; right: 2rem;
+    font-family: var(--pixel);
+    font-size: 0.45rem;
+    color: var(--dim);
+    z-index: 100;
+  }
+
+  .nav-hint {
+    position: fixed;
+    bottom: 1.2rem; left: 2rem;
+    font-family: var(--pixel);
+    font-size: 0.4rem;
+    color: #2a4570;
+    z-index: 100;
+  }
+
+  .bg-glow {
+    position: fixed;
+    width: 500px; height: 500px;
+    border-radius: 50%;
+    filter: blur(160px);
+    opacity: 0.08;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .bg-glow-1 { background: var(--accent); top: -150px; right: -50px; }
+  .bg-glow-2 { background: var(--orange); bottom: -150px; left: -50px; }
+
+  .scanlines {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 99;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
+  }
+
+  .reveal {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+  }
+
+  .active .reveal { opacity: 1; transform: translateY(0); }
+  .active .reveal.d1 { transition-delay: 0.15s; }
+  .active .reveal.d2 { transition-delay: 0.3s; }
+  .active .reveal.d3 { transition-delay: 0.45s; }
+  .active .reveal.d4 { transition-delay: 0.6s; }
+  .active .reveal.d5 { transition-delay: 0.75s; }
+
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+  .blink { animation: blink 1s step-end infinite; }
+
+  /* -- Speaker tag -- */
+  .speaker-tag {
+    font-family: var(--pixel);
+    font-size: 0.45rem;
+    color: var(--dim);
+    letter-spacing: 0.1em;
+    margin-top: 1rem;
+  }
+
+  /* -- Strikethrough effect -- */
+  .strike {
+    text-decoration: line-through;
+    color: var(--dim);
+    opacity: 0.5;
+  }
+
+  /* -- Fist pump -- */
+  @keyframes pump {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    25% { transform: translateY(-20px) rotate(-10deg); }
+    50% { transform: translateY(-35px) rotate(5deg); }
+    75% { transform: translateY(-15px) rotate(-5deg); }
+  }
+
+  .fist-pump {
+    font-size: 4rem;
+    display: inline-block;
+    animation: pump 1.5s ease-in-out infinite;
+  }
+
+  /* -- QR & repo link -- */
+  .qr-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 2.5rem;
+    margin-top: 1.2rem;
+  }
+
+  .qr-box {
+    background: #fff;
+    border: 3px solid var(--accent);
+    padding: 1rem;
+    box-shadow: var(--glow-teal);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .qr-box canvas { display: block; }
+
+  .qr-info {
+    text-align: left;
+  }
+
+  .qr-info .repo-name {
+    font-family: var(--pixel);
+    font-size: 0.7rem;
+    line-height: 2;
+    color: var(--text-bright);
+    margin-bottom: 0.7rem;
+  }
+
+  .repo-link {
+    display: block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--accent);
+    word-break: break-all;
+    max-width: 400px;
+    line-height: 1.6;
+    background: var(--terminal-bg);
+    padding: 0.5rem 0.9rem;
+    border: 2px solid var(--surface-light);
+    margin-bottom: 0.8rem;
+    text-decoration: none;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .repo-link:hover {
+    border-color: var(--accent);
+    box-shadow: var(--glow-teal);
+    color: var(--accent-bright);
+  }
+
+  .scan-hint {
+    font-family: var(--pixel);
+    font-size: 0.4rem;
+    color: var(--dim);
+    letter-spacing: 0.1em;
+  }
+
+  /* -- Info bar -- */
+  .info-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 36px;
+    background: var(--bg-deep);
+    border-top: 1px solid var(--surface-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.8rem;
+    z-index: 150;
+    padding: 0 2rem;
+  }
+
+  .info-bar a {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    text-decoration: none;
+    color: var(--dim);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    transition: color 0.2s ease;
+    white-space: nowrap;
+  }
+
+  .info-bar a:hover { color: var(--accent); }
+
+  .info-bar .avatar {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 1px solid var(--surface-light);
+    object-fit: cover;
+  }
+
+  .info-bar .gh-icon {
+    width: 16px;
+    height: 16px;
+    fill: currentColor;
+    flex-shrink: 0;
+  }
+
+  .info-bar .sep {
+    width: 1px;
+    height: 14px;
+    background: var(--surface-light);
+    flex-shrink: 0;
+  }
+
+  .info-bar .imprint-btn {
+    cursor: pointer;
+    background: none;
+    border: none;
+    color: var(--dim);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    padding: 0;
+    transition: color 0.2s ease;
+  }
+
+  .info-bar .imprint-btn:hover { color: var(--accent); }
+
+  /* Shift existing bottom UI above info bar */
+  .progress { bottom: 36px; }
+  .slide-counter { bottom: calc(36px + 1.2rem); }
+  .nav-hint { bottom: calc(36px + 1.2rem); }
+
+  /* -- Imprint modal -- */
+  .imprint-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(10, 18, 48, 0.85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+  }
+
+  .imprint-overlay.visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .imprint-modal {
+    background: var(--surface);
+    border: 2px solid var(--surface-light);
+    padding: 2rem 2.5rem;
+    max-width: 420px;
+    width: 90%;
+    position: relative;
+    box-shadow: var(--glow-teal);
+  }
+
+  .imprint-modal h3 {
+    font-family: var(--pixel);
+    font-size: 0.6rem;
+    color: var(--accent);
+    margin-bottom: 1.2rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+  }
+
+  .imprint-modal p {
+    font-size: 0.9rem;
+    line-height: 1.8;
+    color: var(--text);
+    margin-bottom: 0.6rem;
+  }
+
+  .imprint-modal .imprint-label {
+    color: var(--dim);
+    font-size: 0.8rem;
+  }
+
+  .imprint-modal .close-btn {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: none;
+    border: 2px solid var(--surface-light);
+    color: var(--dim);
+    font-family: var(--pixel);
+    font-size: 0.5rem;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: border-color 0.2s ease, color 0.2s ease;
+  }
+
+  .imprint-modal .close-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+</style>
+</head>
+<body>
+
+<div class="scanlines"></div>
+<div class="bg-glow bg-glow-1"></div>
+<div class="bg-glow bg-glow-2"></div>
+
+<div class="deck">
+
+  <!-- ===== 1: TITLE ===== -->
+  <div class="slide active" data-slide="0">
+    <img src="../pres/phoneclaw.png" alt="PhoneClaw" class="hero-img reveal">
+    <h1 class="reveal d1">I Put an AI Agent<br>on a <span class="gradient-orange">Phone</span></h1>
+    <p class="subtitle reveal d2">Here's how you can too.</p>
+    <p class="speaker-tag reveal d3">Thomas Jansen</p>
+    <p class="dim reveal d4" style="margin-top:1.5rem;font-size:0.8rem;">Press <span class="pixel" style="font-size:0.5rem;">SPACE</span> or <span class="pixel" style="font-size:0.5rem;">&gt;</span> to advance</p>
+  </div>
+
+  <!-- ===== 2: THE DRAWER PHONE ===== -->
+  <div class="slide" data-slide="1">
+    <h3 class="reveal">Show of Hands</h3>
+    <h2 class="reveal d1">Who has an old phone<br>in a <span class="gradient-orange">drawer</span>?</h2>
+    <p class="reveal d2" style="font-size:4rem;margin:1rem 0;">📱</p>
+    <p class="big-quote reveal d3">
+      What if that phone could run a fully autonomous AI agent?<br>
+      <span class="accent">No root. No custom ROM.</span><br>
+      Just an app and some scripts.
+    </p>
+  </div>
+
+  <!-- ===== 3: THE IDEA ===== -->
+  <div class="slide" data-slide="2">
+    <h3 class="reveal">The Idea</h3>
+    <h2 class="reveal d1">A Chain of <span class="gradient-text">Obvious</span> Facts</h2>
+    <div class="flow reveal d2">
+      <div class="flow-node">OpenClaw</div>
+      <span class="flow-arrow">runs on</span>
+      <div class="flow-node">Node.js</div>
+    </div>
+    <div class="flow reveal d3">
+      <div class="flow-node">Termux</div>
+      <span class="flow-arrow">runs</span>
+      <div class="flow-node">Node.js</div>
+    </div>
+    <div class="flow reveal d4">
+      <div class="flow-node">Termux</div>
+      <span class="flow-arrow">runs on</span>
+      <div class="flow-node active-node">Android</div>
+    </div>
+    <p class="reveal d5" style="margin-top:1.5rem;font-size:1.3rem;color:var(--text-bright);">
+      So technically... <span class="orange bold">right?</span>
+    </p>
+    <p class="dim reveal d5" style="font-size:0.9rem;margin-top:0.5rem;font-style:italic;">Famous last words.</p>
+  </div>
+
+  <!-- ===== 4: THE PAIN — AUTOCORRECT ===== -->
+  <div class="slide" data-slide="3">
+    <h3 class="reveal">Day One</h3>
+    <h2 class="reveal d1">Typing on a <span class="gradient-orange">Phone Keyboard</span></h2>
+    <div class="autocorrect-demo reveal d2">
+      <div class="ac-row">
+        <div class="ac-typed"><span class="accent">$</span> npm install -g openclaw</div>
+        <span class="ac-arrow">&gt;&gt;</span>
+        <div class="ac-result"><span class="accent">$</span> <span class="wrong">nap</span> <span class="correct">install -g openclaw</span></div>
+      </div>
+      <div class="ac-row">
+        <div class="ac-typed"><span class="accent">$</span> pkg update && pkg upgrade</div>
+        <span class="ac-arrow">&gt;&gt;</span>
+        <div class="ac-result"><span class="accent">$</span> <span class="wrong">pig</span> <span class="correct">update && </span><span class="wrong">pig</span> <span class="correct">upgrade</span></div>
+      </div>
+      <div class="ac-row">
+        <div class="ac-typed"><span class="accent">$</span> sed -i 's|/tmp|$PREFIX/tmp|g'</div>
+        <span class="ac-arrow">&gt;&gt;</span>
+        <div class="ac-result" style="color:var(--red);">just... no</div>
+      </div>
+    </div>
+    <p class="dim reveal d3" style="font-size:0.85rem;">Autocorrect turned <code style="font-family:'JetBrains Mono';color:var(--orange);">npm</code> into "nap." Honestly, I should have been napping instead.</p>
+  </div>
+
+  <!-- ===== 5: THE PAIN — /tmp ===== -->
+  <div class="slide" data-slide="4">
+    <h3 class="reveal">The Wall</h3>
+    <h2 class="reveal d1">OpenClaw vs <span class="gradient-orange">/tmp</span></h2>
+    <div class="terminal reveal d2">
+      <div class="terminal-bar">
+        <span class="terminal-dot red"></span>
+        <span class="terminal-dot yellow"></span>
+        <span class="terminal-dot green"></span>
+        <span class="terminal-title">TERMUX ON PHONE</span>
+      </div>
+      <div class="terminal-body">
+        <span class="prompt">$ </span><span class="cmd">openclaw gateway</span><br>
+        <span class="err">Error: EACCES: permission denied, mkdir '/tmp/openclaw'</span><br>
+        <span class="err">Error: EACCES: permission denied, mkdir '/tmp/openclaw'</span><br>
+        <span class="err">Error: EACCES: permission denied, mkdir '/tmp/openclaw'</span><br>
+        <br>
+        <span class="comment"># Hardcoded in ~15 files. Every. Single. One.</span><br>
+        <span class="comment"># Manual sed on a touch keyboard...</span><br>
+        <span class="prompt">$ </span><span class="cmd">find . -name '*.js' | xargs sed -i 's|/tmp/openclaw|...'</span><br>
+        <span class="comment"># ...on a 5-inch screen...squinting...</span><br>
+        <span class="comment"># ...missed one file. 45 min debugging.</span>
+      </div>
+    </div>
+    <p class="reveal d3" style="font-size:1rem;max-width:580px;">
+      Termux can't write to <code style="font-family:'JetBrains Mono';color:var(--orange);">/tmp</code>. I had to patch every reference. <span class="orange bold">On the phone.</span>
+    </p>
+  </div>
+
+  <!-- ===== 6: IT WORKED ===== -->
+  <div class="slide" data-slide="5">
+    <h3 class="reveal">And Then...</h3>
+    <h2 class="reveal d1"><span class="gradient-text">localhost:18789</span></h2>
+    <div class="reveal d2">
+      <span class="fist-pump">✊</span>
+    </div>
+    <p class="big-quote reveal d3" style="font-size:1.2rem;">
+      The dashboard loaded. In a coffee shop. I pumped my fist.<br>
+      People looked at me. <span class="accent">I did not care.</span>
+    </p>
+    <p class="reveal d4" style="max-width:550px;margin-top:1rem;">
+      But that afternoon? <span class="orange bold">Nobody should ever have to repeat it.</span><br>
+      It was painful. Error-prone. One missed file = 45 minutes of confusion.
+    </p>
+  </div>
+
+  <!-- ===== 7: IMPROVEMENT #1 — SSH ===== -->
+  <div class="slide" data-slide="6">
+    <h3 class="reveal">Improvement #1</h3>
+    <h2 class="reveal d1"><span class="gradient-text">SSH</span> Changes Everything</h2>
+    <div class="connection-line reveal d2">
+      <span class="laptop-icon">💻</span>
+      <div class="ssh-line">
+        <span class="ssh-label">SSH :8022 &gt;&gt;</span>
+      </div>
+      <div class="phone-icon">
+        <div class="phone-screen">
+          $ sshd<br>
+          <span style="color:var(--accent)">listening...</span><br>
+          <span style="color:var(--dim)">port 8022</span><br>
+          <br>
+          $ openclaw<br>
+          <span style="color:var(--accent)">gateway...</span>
+        </div>
+      </div>
+    </div>
+    <p class="reveal d3" style="max-width:600px;font-size:1rem;">
+      Real keyboard. Real terminal. Copy-paste that works. Multiple windows.<br>
+      <span class="accent bold">You can actually read the error messages.</span>
+    </p>
+    <div class="difficulty reveal d4">
+      <span class="difficulty-label" style="color:var(--red);">BEFORE</span>
+      <div class="difficulty-bar"><div class="difficulty-fill pain"></div></div>
+      <span class="difficulty-value" style="color:var(--red);">An afternoon</span>
+    </div>
+    <div class="difficulty reveal d5">
+      <span class="difficulty-label" style="color:var(--yellow);">WITH SSH</span>
+      <div class="difficulty-bar"><div class="difficulty-fill better"></div></div>
+      <span class="difficulty-value" style="color:var(--yellow);">~45 minutes</span>
+    </div>
+  </div>
+
+  <!-- ===== 8: THE WARM PHONE ===== -->
+  <div class="slide" data-slide="7">
+    <h3 class="reveal">Fun Fact</h3>
+    <h2 class="reveal d1">Compiling C++ on a Phone</h2>
+    <div class="two-col">
+      <div style="display:flex;flex-direction:column;align-items:center;">
+        <div class="phone-heat reveal d2">
+          <div class="heat-waves">
+            <div class="heat-wave"></div>
+            <div class="heat-wave"></div>
+            <div class="heat-wave"></div>
+            <div class="heat-wave"></div>
+            <div class="heat-wave"></div>
+          </div>
+          <span class="temp">42C</span>
+          <span class="temp-label">BUILDING LLAMA.CPP</span>
+        </div>
+        <p class="dim reveal d3" style="margin-top:1rem;font-size:0.8rem;">15-30 min compile time</p>
+      </div>
+      <div class="reveal d3" style="text-align:left;">
+        <p style="font-size:1.1rem;line-height:1.8;">
+          When you compile <span class="mono accent">llama.cpp</span> on a phone, it gets <span class="orange bold">warm</span>.<br><br>
+          Like, genuinely warm. You are holding a tiny space heater that is also building a neural network.<br><br>
+          <span class="dim" style="font-style:italic;">It's kind of beautiful.</span>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 9: STILL TOO MANUAL ===== -->
+  <div class="slide" data-slide="8">
+    <h3 class="reveal">But Still...</h3>
+    <h2 class="reveal d1">A <span class="gradient-orange">20-Step</span> Checklist</h2>
+    <div class="two-col">
+      <ul class="checklist reveal d2">
+        <li><span class="check-x">!</span> Install 12 Termux packages</li>
+        <li><span class="check-x">!</span> Configure TMPDIR, TMP, TEMP</li>
+        <li><span class="check-x">!</span> Node-GYP workaround</li>
+        <li><span class="check-x">!</span> npm install openclaw</li>
+        <li><span class="check-x">!</span> Find and patch ~15 files</li>
+        <li><span class="check-x">!</span> Create service definition</li>
+        <li><span class="check-x">!</span> Set up runit directories</li>
+        <li><span class="check-x">!</span> Configure bashrc exports</li>
+      </ul>
+      <div class="reveal d3" style="text-align:left;">
+        <p style="font-size:1.1rem;line-height:1.8;max-width:380px;">
+          Get <span class="orange bold">one wrong</span> and something downstream breaks in a confusing way.<br><br>
+          Miss the GYP workaround?<br>
+          <span class="dim">Good luck with that error.</span><br><br>
+          Forget one env var?<br>
+          <span class="dim">Permission denied.</span><br><br>
+          Run setup twice?<br>
+          <span class="dim">PATH duplicated six times.</span>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 10: ENTER CLAUDE ===== -->
+  <div class="slide" data-slide="9">
+    <h3 class="reveal">Improvement #2</h3>
+    <h2 class="reveal d1">I Sat Down with <span class="gradient-text">Claude</span></h2>
+    <div class="terminal reveal d2">
+      <div class="terminal-bar">
+        <span class="terminal-dot red"></span>
+        <span class="terminal-dot yellow"></span>
+        <span class="terminal-dot green"></span>
+        <span class="terminal-title">CLAUDE CODE</span>
+      </div>
+      <div class="terminal-body">
+        <span class="comment"># The brief:</span><br>
+        <span class="output">"Here's everything I do manually.</span><br>
+        <span class="output">&nbsp;Make it a script.</span><br>
+        <span class="output">&nbsp;Make it <span class="highlight">idempotent</span>.</span><br>
+        <span class="output">&nbsp;Make it detect Termux.</span><br>
+        <span class="output">&nbsp;Make it patch <span class="highlight">every file</span> automatically.</span><br>
+        <span class="output">&nbsp;Make it print clear instructions at the end."</span><br>
+        <br>
+        <span class="comment"># What Claude caught that I missed:</span><br>
+        <span class="prompt">&gt; </span><span class="cmd">bashrc block needs markers</span><br>
+        <span class="prompt">&gt; </span><span class="cmd">so re-running won't add duplicate lines</span><br>
+        <span class="prompt">&gt; </span><span class="cmd">otherwise PATH gets same dir 6x</span>
+      </div>
+    </div>
+    <p class="reveal d3" style="max-width:580px;">
+      We went back and forth. I'd test on the phone, find an edge case, come back. <span class="accent bold">One evening.</span>
+    </p>
+  </div>
+
+  <!-- ===== 11: DOCTOR CLAW ===== -->
+  <div class="slide" data-slide="10">
+    <h3 class="reveal">My Favorite Part</h3>
+    <h2 class="reveal d1"><span class="gradient-orange">doctor_claw.sh</span></h2>
+    <div class="terminal reveal d2">
+      <div class="terminal-bar">
+        <span class="terminal-dot red"></span>
+        <span class="terminal-dot yellow"></span>
+        <span class="terminal-dot green"></span>
+        <span class="terminal-title">TERMUX</span>
+      </div>
+      <div class="terminal-body">
+        <span class="prompt">$ </span><span class="cmd">./scripts/doctor_claw.sh</span><br>
+        <br>
+        <span style="color:var(--text-bright);">OpenClaw Doctor</span><br>
+        <span style="color:var(--text-bright);">==============</span><br>
+        <span class="doc-pass">&nbsp;&nbsp;PASS</span> <span class="doc-label">PREFIX is set</span><br>
+        <span class="doc-pass">&nbsp;&nbsp;PASS</span> <span class="doc-label">node is available</span><br>
+        <span class="doc-pass">&nbsp;&nbsp;PASS</span> <span class="doc-label">openclaw in PATH</span><br>
+        <span class="doc-pass">&nbsp;&nbsp;PASS</span> <span class="doc-label">No unpatched /tmp/openclaw references</span><br>
+        <span class="doc-pass">&nbsp;&nbsp;PASS</span> <span class="doc-label">$PREFIX/tmp/openclaw is writable</span><br>
+        <span class="doc-pass">&nbsp;&nbsp;PASS</span> <span class="doc-label">tmux available</span><br>
+        <span class="doc-pass">&nbsp;&nbsp;PASS</span> <span class="doc-label">Gateway UI reachable at :18789</span><br>
+        <br>
+        <span style="color:var(--accent);">Summary: 7 pass, 0 warn, 0 fail</span>
+      </div>
+    </div>
+    <p class="reveal d3" style="max-width:550px;">
+      Every check has a <span class="accent bold">remediation</span>. Something fails? It tells you exactly how to fix it.
+    </p>
+  </div>
+
+  <!-- ===== 12: TODAY'S SETUP ===== -->
+  <div class="slide" data-slide="11">
+    <h3 class="reveal">Today</h3>
+    <h2 class="reveal d1"><span class="gradient-text">2 Minutes</span> of Typing</h2>
+    <div class="timeline-story reveal d2">
+      <div class="timeline-node past">
+        <div class="tl-label" style="color:var(--red);">V1: ON PHONE</div>
+        <div class="tl-time">An afternoon</div>
+        <div class="tl-detail">Touch keyboard + manual sed</div>
+      </div>
+      <div class="timeline-node mid">
+        <div class="tl-label" style="color:var(--yellow);">V2: + SSH</div>
+        <div class="tl-time">~45 minutes</div>
+        <div class="tl-detail">Real keyboard, still manual</div>
+      </div>
+      <div class="timeline-node now">
+        <div class="tl-label" style="color:var(--accent);">V3: + SCRIPTS</div>
+        <div class="tl-time">~2 min active</div>
+        <div class="tl-detail">One command + coffee</div>
+      </div>
+    </div>
+    <div class="coffee-scene reveal d3">
+      <div class="terminal" style="max-width:460px;">
+        <div class="terminal-bar">
+          <span class="terminal-dot red"></span>
+          <span class="terminal-dot yellow"></span>
+          <span class="terminal-dot green"></span>
+          <span class="terminal-title">LAPTOP ~ SSH</span>
+        </div>
+        <div class="terminal-body" style="font-size:0.7rem;">
+          <span class="prompt">$ </span><span class="cmd">git clone ...PhoneClaw ~/phoneclaw-setup</span><br>
+          <span class="prompt">$ </span><span class="cmd">cd ~/phoneclaw-setup && ./setup_claw.sh</span><br>
+          <span class="output" style="color:var(--accent);">>>> OpenClaw Android v2 Setup</span><br>
+          <span class="output">[1/6] Installing dependencies...</span><br>
+          <span class="comment"># go make coffee. seriously.</span>
+        </div>
+      </div>
+      <div class="coffee-cup">
+        <div class="coffee-steam">
+          <div class="steam"></div>
+          <div class="steam"></div>
+          <div class="steam"></div>
+        </div>
+      </div>
+    </div>
+    <div class="difficulty reveal d4">
+      <span class="difficulty-label" style="color:var(--accent);">NOW</span>
+      <div class="difficulty-bar"><div class="difficulty-fill easy"></div></div>
+      <span class="difficulty-value" style="color:var(--accent);">2 min + coffee</span>
+    </div>
+  </div>
+
+  <!-- ===== 13: WHY IT MATTERS ===== -->
+  <div class="slide" data-slide="12">
+    <h3 class="reveal">Think About It</h3>
+    <h2 class="reveal d1">What's in <span class="gradient-orange">That Phone</span>?</h2>
+    <div class="hw-grid reveal d2">
+      <div class="hw-item">
+        <span class="hw-icon">🧠</span>
+        <div class="hw-name">ARM CPU</div>
+        <div class="hw-use">Multi-core compute</div>
+      </div>
+      <div class="hw-item">
+        <span class="hw-icon">📡</span>
+        <div class="hw-name">WI-FI + BT</div>
+        <div class="hw-use">Always connected</div>
+      </div>
+      <div class="hw-item">
+        <span class="hw-icon">📸</span>
+        <div class="hw-name">CAMERA</div>
+        <div class="hw-use">Vision for agent</div>
+      </div>
+      <div class="hw-item">
+        <span class="hw-icon">🎙️</span>
+        <div class="hw-name">MIC</div>
+        <div class="hw-use">Audio input</div>
+      </div>
+      <div class="hw-item">
+        <span class="hw-icon">📍</span>
+        <div class="hw-name">GPS</div>
+        <div class="hw-use">Location aware</div>
+      </div>
+      <div class="hw-item">
+        <span class="hw-icon">🔋</span>
+        <div class="hw-name">BATTERY</div>
+        <div class="hw-use">Runs for hours</div>
+      </div>
+      <div class="hw-item">
+        <span class="hw-icon">📋</span>
+        <div class="hw-name">CLIPBOARD</div>
+        <div class="hw-use">Termux:API</div>
+      </div>
+      <div class="hw-item">
+        <span class="hw-icon">🔔</span>
+        <div class="hw-name">NOTIFS</div>
+        <div class="hw-use">Push alerts</div>
+      </div>
+    </div>
+    <p class="reveal d3" style="font-size:1.15rem;max-width:600px;margin-top:0.8rem;">
+      A self-contained, portable, always-connected computer.<br>
+      <span class="orange bold">And it costs nothing. You already own it.</span>
+    </p>
+  </div>
+
+  <!-- ===== 14: CALL TO ACTION ===== -->
+  <div class="slide" data-slide="13">
+    <h2 class="reveal">Go Put an <span class="gradient-orange">AI</span> on Your <span class="gradient-text">Phone</span></h2>
+    <div class="cta-box reveal d1">
+      <p style="text-align:left;">
+        <span class="accent bold">A few weeks ago:</span> hunched over a phone, cursing at autocorrect, patching JS files with my thumbs.<br><br>
+        <span class="accent bold">Today:</span> one script and a cup of coffee.<br><br>
+        That's the power of taking something painful, understanding it deeply, and making it disappear behind a <span class="orange bold">single command</span>.
+      </p>
+    </div>
+    <div class="qr-wrapper reveal d2">
+      <div class="qr-box">
+        <canvas id="qr-canvas"></canvas>
+      </div>
+      <div class="qr-info">
+        <div class="repo-name">PhoneClaw</div>
+        <a href="https://github.com/tjansn/PhoneClaw" target="_blank" rel="noopener" class="repo-link">github.com/tjansn/PhoneClaw</a>
+        <div class="scan-hint">SCAN OR CLICK TO GET STARTED</div>
+      </div>
+    </div>
+    <p class="reveal d3" style="margin-top:1.2rem;font-size:1rem;">
+      It's easier than you think.
+    </p>
+    <p class="reveal d4" style="margin-top:1rem;">
+      <span class="pixel" style="font-size:0.6rem;color:var(--accent);">THANK YOU</span>
+    </p>
+  </div>
+
+</div>
+
+<div class="progress" id="progress"></div>
+<div class="slide-counter" id="counter">1 / 14</div>
+<div class="nav-hint">&lt; &gt; OR SPACE TO NAVIGATE</div>
+
+<!-- Info bar -->
+<div class="info-bar">
+  <a href="https://tjansn.com" target="_blank" rel="noopener">
+    <img src="../tjansn.png" alt="tjansn" class="avatar">
+    <span>by tjansn</span>
+  </a>
+  <span class="sep"></span>
+  <a href="https://github.com/tjansn/PhoneClaw" target="_blank" rel="noopener">
+    <svg class="gh-icon" viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+    <span>PhoneClaw</span>
+  </a>
+  <span class="sep"></span>
+  <button class="imprint-btn" id="imprintBtn">Imprint</button>
+</div>
+
+<!-- Imprint modal -->
+<div class="imprint-overlay" id="imprintOverlay">
+  <div class="imprint-modal">
+    <button class="close-btn" id="imprintClose">x</button>
+    <h3>Imprint</h3>
+    <p><strong style="color:var(--text-bright);">Thomas Jansen</strong></p>
+    <p>Frankenberger Str. 31<br>52066 Aachen</p>
+    <p class="imprint-label">Email</p>
+    <p>contact[at]jansn.de</p>
+    <p style="margin-top:1rem;color:var(--dim);font-size:0.8rem;">&#169; Thomas Jansen 2026</p>
+  </div>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+
+  let current = 0;
+  const total = slides.length;
+
+  function goTo(n) {
+    if (n < 0 || n >= total || n === current) return;
+    slides[current].classList.remove('active');
+    slides[current].classList.add('exit-up');
+    const prev = current;
+    current = n;
+    slides[current].classList.add('active');
+    setTimeout(() => { slides[prev].classList.remove('exit-up'); }, 600);
+
+    progress.style.width = ((current + 1) / total * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + total;
+  }
+
+  function next() { goTo(current + 1); }
+  function prev() { goTo(current - 1); }
+
+  // Keyboard
+  document.addEventListener('keydown', (e) => {
+    if (e.key === ' ' || e.key === 'ArrowRight' || e.key === 'Enter') { e.preventDefault(); next(); }
+    if (e.key === 'ArrowLeft' || e.key === 'Backspace') { e.preventDefault(); prev(); }
+    if (e.key === 'f') {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+      else document.exitFullscreen();
+    }
+    // Jump to slide with number keys
+    if (e.key >= '1' && e.key <= '9') {
+      const target = parseInt(e.key) - 1;
+      if (target < total) goTo(target);
+    }
+    if (e.key === '0') goTo(9); // 0 = slide 10
+  });
+
+  // Touch / swipe
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.touches[0].clientX; });
+  document.addEventListener('touchend', (e) => {
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    if (Math.abs(dx) > 50) { dx < 0 ? next() : prev(); }
+  });
+
+  // Click navigation
+  document.addEventListener('click', (e) => {
+    if (e.target.closest('.terminal, .card, a, .hw-item, .flow-node, .qr-box, .repo-link, .info-bar, .imprint-overlay')) return;
+    if (e.clientX > window.innerWidth / 2) next(); else prev();
+  });
+
+  // Initial state
+  progress.style.width = (1 / total * 100) + '%';
+
+  // Animate difficulty bars on slide enter
+  const observer = new MutationObserver((mutations) => {
+    mutations.forEach((m) => {
+      if (m.target.classList.contains('active')) {
+        const fills = m.target.querySelectorAll('.difficulty-fill');
+        fills.forEach(f => {
+          const w = f.style.width || window.getComputedStyle(f).width;
+          f.style.width = '0%';
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              f.style.width = '';
+            });
+          });
+        });
+      }
+    });
+  });
+
+  slides.forEach(s => observer.observe(s, { attributes: true, attributeFilter: ['class'] }));
+
+  // Imprint modal
+  const imprintOverlay = document.getElementById('imprintOverlay');
+  const imprintBtn = document.getElementById('imprintBtn');
+  const imprintClose = document.getElementById('imprintClose');
+
+  imprintBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    imprintOverlay.classList.add('visible');
+  });
+
+  imprintClose.addEventListener('click', (e) => {
+    e.stopPropagation();
+    imprintOverlay.classList.remove('visible');
+  });
+
+  imprintOverlay.addEventListener('click', (e) => {
+    if (e.target === imprintOverlay) {
+      imprintOverlay.classList.remove('visible');
+    }
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && imprintOverlay.classList.contains('visible')) {
+      imprintOverlay.classList.remove('visible');
+    }
+  });
+
+  // QR Code
+  (function(){
+    const url = 'https://github.com/tjansn/PhoneClaw';
+    const canvas = document.getElementById('qr-canvas');
+    if (!canvas) return;
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js';
+    s.onload = function() {
+      const qr = qrcode(0, 'M');
+      qr.addData(url);
+      qr.make();
+      const mc = qr.getModuleCount();
+      const cs = 6, mg = 2, sz = (mc + mg*2) * cs;
+      canvas.width = sz; canvas.height = sz;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#fff'; ctx.fillRect(0,0,sz,sz);
+      ctx.fillStyle = '#0f1b3d';
+      for (let r=0;r<mc;r++) for (let c=0;c<mc;c++)
+        if (qr.isDark(r,c)) ctx.fillRect((c+mg)*cs,(r+mg)*cs,cs,cs);
+    };
+    document.head.appendChild(s);
+  })();
+</script>
+
+</body>
+</html>
