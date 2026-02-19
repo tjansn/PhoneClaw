@@ -1,104 +1,414 @@
+<img src="./clawphone.png" alt="ClawPhone header" width="100%" />
 
+# PhoneClaw: Complete Step-by-Step Guide
 
-<p align="center"><img src="clawphone.png" alt="ClawPhone" width="50%"></p>
+This guide walks you through the entire process of running OpenClaw on an Android phone, from scratch. No prior setup is assumed — just an Android phone in your hand and a computer nearby.
 
-# ClawPhone : Run OpenClaw on Android
+---
 
-Install and run [OpenClaw](https://openclaw.ai) on an Android device using Termux. No root required. The intended workflow is to **access the phone remotely (SSH or Tailscale)** and run the install from your computer with a proper keyboard.
+## Phase 1: Prepare the Phone
 
-## Prerequisites
+### Step 1: Install F-Droid (app store)
 
-- **Termux** from [F-Droid](https://f-droid.org/en/packages/com.termux/) (do not use the Play Store version).
-- **Termux:API** from [F-Droid](https://f-droid.org/en/packages/com.termux.api/) for hardware features (notifications, battery, clipboard).
+F-Droid is an open-source app store. You need it because the Google Play versions of Termux are outdated and will not work.
 
-See [docs/prerequisites.md](docs/prerequisites.md) for details and optional apps.
+1. On the phone, open a browser (Chrome, Firefox, etc.).
+2. Go to **https://f-droid.org**.
+3. Tap **Download F-Droid**.
+4. When the APK downloads, open it. Android will ask you to allow installs from this source — allow it.
+5. Install F-Droid and open it.
+6. Wait for F-Droid to update its repository index (this takes a minute on first launch).
 
-## Quick start
+### Step 2: Install Termux
 
-### 1. Get a shell on the phone from your computer
+Termux is a Linux terminal environment for Android. It gives you a full shell, package manager, and the ability to run Node.js, Python, and other tools — no root required.
 
-On the phone (in Termux), do the minimal setup once: install OpenSSH, start `sshd`, set a password, and note the SSH command. Then from your computer, connect with SSH (or use [Tailscale](docs/remote-access.md#option-b-tailscale) so you don’t need to be on the same Wi‑Fi).
+1. In F-Droid, search for **Termux**.
+2. Install **Termux** (by Fredrik Fornwall). Make sure it is the F-Droid version, not the Play Store one.
+3. Open Termux. You will see a terminal with a `$` prompt. This means it is working.
 
-Full steps: [Remote access (SSH or Tailscale)](docs/remote-access.md).
+### Step 3: Install Termux:API
 
-**Find the phone's IP address** — run this in Termux on the phone:
+Termux:API lets Termux interact with Android hardware — notifications, battery status, clipboard, Wi-Fi info, and more. OpenClaw uses these features.
+
+1. Go back to F-Droid.
+2. Search for **Termux:API**.
+3. Install **Termux:API** (by Fredrik Fornwall).
+4. Open Termux:API once so Android registers the app.
+
+### Step 4: Grant permissions
+
+1. Go to Android **Settings > Apps > Termux** and grant any requested permissions.
+2. Do the same for **Termux:API**.
+3. While you are in Termux's app settings, tap **Battery** and set it to **Unrestricted** (or disable battery optimization). This prevents Android from killing OpenClaw when the screen is off.
+
+### Step 5: Make sure you have Wi-Fi
+
+Both the phone and your computer need to be on the same Wi-Fi network (unless you use Tailscale — see the alternative in Phase 2). The initial install also downloads several hundred MB of packages, so a reliable connection matters.
+
+---
+
+## Phase 2: Set Up Remote Access (SSH)
+
+You will run the entire install from your computer over SSH. This is much easier than typing long commands on the phone's touch keyboard.
+
+### Step 6: Install OpenSSH on the phone
+
+On the phone, in Termux, type these commands:
+
+```bash
+pkg update && pkg upgrade -y
+pkg install -y openssh
+```
+
+### Step 7: Start the SSH server
+
+```bash
+sshd
+```
+
+Termux's SSH server listens on **port 8022** (not the standard port 22).
+
+### Step 8: Set a password
+
+```bash
+passwd
+```
+
+Type a password and confirm it. You will use this to log in from your computer.
+
+### Step 9: Find your username and IP address
+
+Run this to display the SSH command you will use from your computer:
 
 ```bash
 termux-wifi-connectioninfo
 ```
 
-This uses the Termux:API app (already a prerequisite) to query Android directly and prints the Wi‑Fi connection info including IP (e.g. `192.168.1.42`). Use it as `<phone_ip>` below.
+This prints your Wi-Fi connection details, including the phone's IP address (e.g. `192.168.1.42`).
 
-Then from your computer:
+Also note your Termux username:
 
 ```bash
-ssh -p 8022 <termux_user>@<phone_ip>
+whoami
 ```
 
-### 2. Clone this repo on the phone and run setup
+It will be something like `u0_a123`.
 
-In your **SSH session to the phone**, clone the repo and run setup:
+### Step 10: Connect from your computer
+
+On your computer, open a terminal and run:
+
+```bash
+ssh -p 8022 u0_a123@192.168.1.42
+```
+
+Replace `u0_a123` with your Termux username from `whoami`, and `192.168.1.42` with the IP from `termux-wifi-connectioninfo`.
+
+Enter the password you set in Step 8. You are now inside Termux on the phone, but typing from your computer's keyboard.
+
+> **Tip — SSH keys (optional but recommended):** On your computer, run:
+>
+> ```bash
+> ssh-keygen -t ed25519
+> ssh-copy-id -p 8022 u0_a123@192.168.1.42
+> ```
+>
+> After this, you can log in without typing the password every time.
+
+### Alternative: Tailscale (skip Steps 6-10 if you prefer this)
+
+If your phone and computer are not on the same Wi-Fi, or you want a more permanent connection, use Tailscale:
+
+1. Install the **Tailscale** app on the phone (Play Store or F-Droid) and log in.
+
+2. Install Tailscale on your computer and log in with the same account.
+
+3. In Termux on the phone, still install OpenSSH and start `sshd` (Steps 6-8 above).
+
+4. Find the phone's Tailscale IP in the Tailscale admin console or app.
+
+5. From your computer:
+
+   ```bash
+   ssh -p 8022 u0_a123@100.x.y.z
+   ```
+
+   (Use the phone's Tailscale IP or MagicDNS name like `myphone.tail12345.ts.net`.)
+
+---
+
+## Phase 3: Install OpenClaw
+
+Everything from here is done **in the SSH session** on your computer (connected to the phone).
+
+### Step 11: Install git and clone this repository
 
 ```bash
 pkg install -y git
 git clone https://github.com/tjansn/PhoneClaw ~/phoneclaw-setup
 cd ~/phoneclaw-setup
+```
+
+### Step 12: Make scripts executable
+
+```bash
 chmod +x setup_claw.sh update_claw.sh scripts/*.sh
+```
+
+### Step 13: Run the setup script
+
+```bash
 ./setup_claw.sh
 ```
 
-### 3. Onboard and start (still in the SSH session)
+This script does the following automatically:
 
-When setup finishes:
+1. Updates Termux packages and installs dependencies (Node.js, Python, build tools, tmux, etc.).
+2. Configures environment variables (`TMPDIR`, `TMP`, `TEMP`) so OpenClaw uses Termux-compatible paths.
+3. Applies a Node-GYP workaround for Android.
+4. Installs OpenClaw globally via npm.
+5. Patches hardcoded `/tmp/openclaw` paths in the installed package to use Termux's `$PREFIX/tmp/openclaw`.
+6. Creates a runit service definition (optional, not started).
+
+**This will take a while.** The npm install includes native code (llama.cpp) that must be compiled on the phone. Expect **15-30 minutes** on first install. Do not interrupt it.
+
+When the script finishes, you will see a "SETUP COMPLETE" message with next steps.
+
+---
+
+## Phase 4: Onboard and Start
+
+### Step 14: Run onboarding
 
 ```bash
 openclaw onboard
 ```
 
-When asked to install a daemon/system service, choose **No**.
+This walks you through the initial OpenClaw configuration (API keys, preferences, etc.).
 
-Then:
+**Important:** When asked whether to install a **daemon** or **system service**, choose **No**. Android does not have systemd. The PhoneClaw scripts handle the service themselves.
+
+### Step 15: Reload your shell environment
 
 ```bash
 source ~/.bashrc
+```
+
+This loads the environment variables that the setup script added.
+
+### Step 16: Start the OpenClaw gateway
+
+```bash
+./scripts/start_claw.sh
+```
+
+This starts OpenClaw in a **tmux** session (a background terminal session that keeps running even if you disconnect from SSH).
+
+### Step 17: Prevent Android from killing the process
+
+```bash
+termux-wake-lock
+```
+
+This acquires a wake lock so Android does not put Termux to sleep and kill the gateway.
+
+### Step 18: Verify it is running
+
+```bash
+./scripts/status_claw.sh
+```
+
+You should see output indicating tmux mode is active and the UI is at `http://localhost:18789`.
+
+For a more thorough environment check:
+
+```bash
+./scripts/doctor_claw.sh
+```
+
+This checks all dependencies, paths, patches, and runtime status. Fix any FAIL items it reports.
+
+---
+
+## Phase 5: Access the Dashboard
+
+### Option A: On the phone itself
+
+Open a browser on the phone and go to:
+
+```
+http://localhost:18789
+```
+
+### Option B: From your computer (recommended)
+
+Keep the gateway bound to localhost for security and forward the port over SSH. On your computer, open a **new** terminal and run:
+
+```bash
+ssh -L 18789:127.0.0.1:18789 -p 8022 u0_a123@192.168.1.42
+```
+
+Replace the username and IP as before. Now open a browser on your computer and go to:
+
+```
+http://localhost:18789
+```
+
+You will see the OpenClaw dashboard. Everything running on the phone is now accessible from your computer's browser.
+
+---
+
+## Day-to-Day Usage
+
+### Starting OpenClaw
+
+SSH into the phone, navigate to the repo, and run:
+
+```bash
+cd ~/phoneclaw-setup
 ./scripts/start_claw.sh
 termux-wake-lock
 ```
 
-### 4. Use the UI
-
-- On the phone: **http://localhost:18789**
-- From your computer: keep the gateway on localhost and tunnel over SSH:
+### Stopping OpenClaw
 
 ```bash
-ssh -L 18789:127.0.0.1:18789 -p 8022 <termux_user>@<phone_ip>
+./scripts/stop_claw.sh
 ```
 
-Then open **http://localhost:18789** on your computer.
+### Checking status
 
-## Scripts
+```bash
+./scripts/status_claw.sh
+```
 
-| Script | Purpose |
-|--------|--------|
-| `setup_claw.sh` | One-time install: dependencies, OpenClaw, path patches, optional service definition. |
-| `scripts/start_claw.sh` | Start the gateway (tmux by default; use `--mode service` for runit). |
-| `scripts/stop_claw.sh` | Stop the gateway (tmux or service). |
-| `scripts/status_claw.sh` | Show runtime mode and status. |
-| `scripts/doctor_claw.sh` | Check environment, patch status, and readiness. |
-| `update_claw.sh` | Update OpenClaw and re-apply patches; restarts current mode. |
+### Viewing live output
 
-## Managing OpenClaw
+The gateway runs in a tmux session called `openclaw`. To attach and see its output:
 
-- **Status:** `./scripts/status_claw.sh` or `sv status openclaw` (if using service mode).
-- **Stop:** `./scripts/stop_claw.sh` or `sv down openclaw`.
-- **Start:** `./scripts/start_claw.sh` or `sv up openclaw`.
-- **Logs (service mode):** `tail -f $PREFIX/var/log/openclaw/current`.
+```bash
+tmux attach -t openclaw
+```
 
-## Docs
+To detach without stopping it: press `Ctrl+b`, then `d`.
 
-- [Prerequisites](docs/prerequisites.md)
-- [Remote access (SSH or Tailscale)](docs/remote-access.md)
-- [Troubleshooting](docs/troubleshooting.md)
-- [Optional features](docs/optional-features.md) (Termux:GUI, reboot)
-- [Advanced: Service mode (runit)](docs/advanced-service-mode.md)
+### Updating OpenClaw
 
+When a new version is released:
+
+```bash
+cd ~/phoneclaw-setup
+./update_claw.sh
+```
+
+This detects whether the gateway is running (tmux or service), stops it, updates the npm package, re-applies the Termux path patches, and restarts in the same mode.
+
+---
+
+## Troubleshooting
+
+### Install takes a very long time or fails
+
+- The first install compiles native code (llama.cpp). **15-30 minutes is normal.** Do not interrupt it.
+- If `npm install` fails, check the error for a missing system package and install it: `pkg install -y <package>`, then re-run `./setup_claw.sh`.
+
+### Errors about `/tmp/openclaw` or "permission denied"
+
+OpenClaw hardcodes `/tmp/openclaw`, which does not work on Termux. The setup script patches this, but if you see the error after a manual install or update:
+
+```bash
+cd ~/phoneclaw-setup
+./update_claw.sh
+```
+
+Or manually ensure the directory and environment:
+
+```bash
+mkdir -p $PREFIX/tmp/openclaw
+source ~/.bashrc
+```
+
+### "No systemd" or daemon errors
+
+Expected on Android — there is no systemd. Use tmux mode (the default) or runit service mode. Never choose to install a daemon during `openclaw onboard`.
+
+### Gateway stops when the phone screen turns off
+
+Run `termux-wake-lock` before starting the gateway. Also make sure battery optimization is disabled for Termux in Android settings (Step 4).
+
+### Run the doctor
+
+```bash
+./scripts/doctor_claw.sh
+```
+
+This checks everything and tells you exactly what to fix.
+
+---
+
+## Advanced: Service Mode (runit)
+
+Instead of running in a tmux session, you can run OpenClaw as a managed background service using termux-services (runit). This is optional.
+
+### Start in service mode
+
+```bash
+./scripts/start_claw.sh --mode service
+termux-wake-lock
+```
+
+### Manage the service
+
+```bash
+sv status openclaw    # Check status
+sv up openclaw        # Start
+sv down openclaw      # Stop
+```
+
+### View logs
+
+```bash
+tail -f $PREFIX/var/log/openclaw/current
+```
+
+### Switch back to tmux mode
+
+```bash
+sv down openclaw
+./scripts/start_claw.sh
+```
+
+---
+
+## Optional Extras
+
+### Termux:GUI
+
+For overlay and extra hardware integration:
+
+1. Install **Termux:GUI** from F-Droid.
+2. In Termux: `pkg install -y termux-gui`.
+3. Grant the permissions it requests.
+
+### Reboot persistence (Termux:Boot)
+
+OpenClaw does not start automatically after a phone reboot. If you want that, install **Termux:Boot** from F-Droid and configure it yourself. This is outside the scope of this guide — see the Termux:Boot documentation.
+
+---
+
+## Quick Reference
+
+| What                         | Command                                                      |
+| ---------------------------- | ------------------------------------------------------------ |
+| Start gateway (tmux)         | `./scripts/start_claw.sh`                                    |
+| Start gateway (service)      | `./scripts/start_claw.sh --mode service`                     |
+| Stop gateway                 | `./scripts/stop_claw.sh`                                     |
+| Check status                 | `./scripts/status_claw.sh`                                   |
+| Health check                 | `./scripts/doctor_claw.sh`                                   |
+| Update OpenClaw              | `./update_claw.sh`                                           |
+| View tmux session            | `tmux attach -t openclaw`                                    |
+| Detach from tmux             | `Ctrl+b`, then `d`                                           |
+| Keep alive in background     | `termux-wake-lock`                                           |
+| Dashboard (phone)            | `http://localhost:18789`                                     |
+| Dashboard (computer via SSH) | `ssh -L 18789:127.0.0.1:18789 -p 8022 user@ip` then `http://localhost:18789` |
