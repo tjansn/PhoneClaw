@@ -88,13 +88,53 @@ preflight_checks() {
   echo -e "${GREEN}    Preflight OK.${NC}"
 }
 
+# --- Mirror health checks ---
+detect_ncurses_mirror_mismatch() {
+  local ncurses_candidate ui_candidate
+  ncurses_candidate="$(apt-cache policy ncurses 2>/dev/null | sed -n 's/^[[:space:]]*Candidate:[[:space:]]*//p' | head -n1)"
+  ui_candidate="$(apt-cache policy ncurses-ui-libs 2>/dev/null | sed -n 's/^[[:space:]]*Candidate:[[:space:]]*//p' | head -n1)"
+
+  if [ -z "$ncurses_candidate" ] || [ -z "$ui_candidate" ]; then
+    return 1
+  fi
+  if [ "$ncurses_candidate" = "(none)" ] || [ "$ui_candidate" = "(none)" ]; then
+    return 1
+  fi
+
+  [ "$ncurses_candidate" != "$ui_candidate" ]
+}
+
+print_mirror_recovery_hint() {
+  echo -e "${YELLOW}    Suggested recovery:${NC}"
+  echo -e "      1) ${GREEN}termux-change-repo${NC} (pick a different mirror)"
+  echo -e "      2) ${GREEN}pkg update -y && pkg upgrade -y${NC}"
+  echo -e "      3) re-run ${GREEN}./setup_claw.sh${NC}"
+}
+
 # --- Install dependencies ---
 install_dependencies() {
   echo -e "${YELLOW}[1/6] Updating system and installing dependencies...${NC}"
   run_with_spinner "pkg update" pkg update -y
   run_with_spinner "pkg upgrade" pkg upgrade -y
-  run_with_spinner "pkg install dependencies" \
-    pkg install -y nodejs-lts git build-essential python cmake clang ninja pkg-config binutils termux-api termux-services proot tmux nano
+
+  if detect_ncurses_mirror_mismatch; then
+    echo -e "${YELLOW}    Mirror looks stale (ncurses candidate mismatch). Refreshing metadata and retrying...${NC}"
+    run_with_spinner "pkg clean cache" pkg clean || true
+    run_with_spinner "pkg update (retry)" pkg update -y || true
+  fi
+
+  if ! run_with_spinner "pkg install dependencies" \
+    pkg install -y nodejs-lts git build-essential python cmake clang ninja pkg-config binutils termux-api termux-services proot tmux nano; then
+    if detect_ncurses_mirror_mismatch; then
+      echo -e "${RED}    Dependency install failed due to mirror package mismatch (ncurses vs ncurses-ui-libs).${NC}"
+      print_mirror_recovery_hint
+    else
+      echo -e "${RED}    Dependency install failed.${NC}"
+      echo -e "${YELLOW}    If this is a mirror issue, switch mirror with ${GREEN}termux-change-repo${YELLOW} and retry.${NC}"
+    fi
+    exit 1
+  fi
+
   echo -e "${GREEN}    Dependencies installed.${NC}"
 }
 
@@ -141,7 +181,40 @@ apply_gyp_workaround() {
 # --- Install OpenClaw ---
 install_openclaw() {
   echo -e "${YELLOW}[4/6] Installing OpenClaw via npm (may take 15–30 min on first run)...${NC}"
-  run_with_spinner "npm install openclaw@latest" npm install -g openclaw@latest
+  local openclaw_root="$PREFIX/lib/node_modules/openclaw"
+  local koffi_base="$openclaw_root/node_modules/koffi/lib/native/base/base.cc"
+  local koffi_src="$openclaw_root/node_modules/koffi/build/koffi/android_arm64/koffi.node"
+  local koffi_dst_dir="$openclaw_root/node_modules/build/koffi/android_arm64"
+
+  # Android Bionic can define RENAME_NOREPLACE without exposing renameat2().
+  # Install first without scripts so we can patch koffi source before build.
+  run_with_spinner "npm install openclaw@latest (ignore scripts)" \
+    npm install -g --ignore-scripts openclaw@latest
+
+  if [ -f "$koffi_base" ]; then
+    if grep -q '!defined(__ANDROID__)' "$koffi_base" 2>/dev/null; then
+      echo -e "${GREEN}    koffi renameat2 Android guard already present.${NC}"
+    else
+      sed -i 's/#if defined(RENAME_NOREPLACE)/#if defined(RENAME_NOREPLACE) \&\& !defined(__ANDROID__)/' "$koffi_base"
+      echo -e "${GREEN}    Patched koffi renameat2 guard for Android.${NC}"
+    fi
+  else
+    echo -e "${YELLOW}    koffi base.cc not found; skipping source patch.${NC}"
+  fi
+
+  if [ -d "$openclaw_root" ]; then
+    run_with_spinner "npm rebuild openclaw native modules" \
+      npm rebuild --prefix "$openclaw_root"
+  fi
+
+  if [ -f "$koffi_src" ]; then
+    mkdir -p "$koffi_dst_dir"
+    cp "$koffi_src" "$koffi_dst_dir/koffi.node"
+    echo -e "${GREEN}    Synced koffi.node to loader path.${NC}"
+  else
+    echo -e "${YELLOW}    koffi.node not found after rebuild; skipping loader-path sync.${NC}"
+  fi
+
   echo -e "${GREEN}    OpenClaw installed.${NC}"
 }
 

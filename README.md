@@ -312,6 +312,13 @@ This detects whether the gateway is running (tmux or service), stops it, updates
 
 - The first install compiles native code (llama.cpp). **15-30 minutes is normal.** Do not interrupt it.
 - If `npm install` fails, check the error for a missing system package and install it: `pkg install -y <package>`, then re-run `./setup_claw.sh`.
+- If setup reports an `ncurses` / `ncurses-ui-libs` version mismatch, your Termux mirror is stale. Run:
+
+```bash
+termux-change-repo
+pkg update -y && pkg upgrade -y
+./setup_claw.sh
+```
 
 ### Errors about `/tmp/openclaw` or "permission denied"
 
