@@ -12,6 +12,61 @@ YELLOW='\033[1;33m'
 RED='\033[1;31m'
 NC='\033[0m'
 
+# --- Spinner helper for long-running commands ---
+run_with_spinner() {
+  local label="$1"
+  shift
+
+  local start_ts now elapsed rc
+  local spin_interval="${SPINNER_INTERVAL:-0.2}"
+  local heartbeat_interval="${HEARTBEAT_INTERVAL:-10}"
+  local frames='|/-\'
+  local i=0 frame
+
+  "$@" &
+  local cmd_pid=$!
+
+  start_ts=$(date +%s)
+
+  if [ -t 1 ]; then
+    while kill -0 "$cmd_pid" 2>/dev/null; do
+      now=$(date +%s)
+      elapsed=$((now - start_ts))
+      frame="${frames:i%4:1}"
+      printf "\r${YELLOW}    [%s] %s (%ss elapsed)...${NC}" "$frame" "$label" "$elapsed"
+      i=$((i + 1))
+      sleep "$spin_interval"
+    done
+    printf "\r\033[K"
+  else
+    start_ts=$(date +%s)
+    while kill -0 "$cmd_pid" 2>/dev/null; do
+      sleep "$heartbeat_interval"
+      if kill -0 "$cmd_pid" 2>/dev/null; then
+        now=$(date +%s)
+        elapsed=$((now - start_ts))
+        echo -e "${YELLOW}    [heartbeat] ${label} still running (${elapsed}s elapsed)...${NC}"
+      fi
+    done
+  fi
+
+  if wait "$cmd_pid"; then
+    rc=0
+  else
+    rc=$?
+  fi
+
+  if [ -t 1 ]; then
+    if [ "$rc" -eq 0 ]; then
+      echo -e "${GREEN}    [ok] ${label} complete.${NC}"
+    else
+      echo -e "${RED}    [error] ${label} failed.${NC}"
+    fi
+  fi
+
+  return "$rc"
+}
+
 # --- Preflight checks ---
 preflight_checks() {
   echo -e "${YELLOW}[preflight] Checking environment...${NC}"
@@ -36,8 +91,10 @@ preflight_checks() {
 # --- Install dependencies ---
 install_dependencies() {
   echo -e "${YELLOW}[1/6] Updating system and installing dependencies...${NC}"
-  pkg update -y && pkg upgrade -y
-  pkg install -y nodejs-lts git build-essential python cmake clang ninja pkg-config binutils termux-api termux-services proot tmux nano
+  run_with_spinner "pkg update" pkg update -y
+  run_with_spinner "pkg upgrade" pkg upgrade -y
+  run_with_spinner "pkg install dependencies" \
+    pkg install -y nodejs-lts git build-essential python cmake clang ninja pkg-config binutils termux-api termux-services proot tmux nano
   echo -e "${GREEN}    Dependencies installed.${NC}"
 }
 
@@ -84,7 +141,7 @@ apply_gyp_workaround() {
 # --- Install OpenClaw ---
 install_openclaw() {
   echo -e "${YELLOW}[4/6] Installing OpenClaw via npm (may take 15–30 min on first run)...${NC}"
-  npm install -g openclaw@latest
+  run_with_spinner "npm install openclaw@latest" npm install -g openclaw@latest
   echo -e "${GREEN}    OpenClaw installed.${NC}"
 }
 

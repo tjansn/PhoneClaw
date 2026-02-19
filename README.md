@@ -68,7 +68,7 @@ termux-wake-lock
 ### 4. Use the UI
 
 - On the phone: **http://localhost:18789**
-- From your computer (safer default): keep the gateway on localhost and tunnel over SSH:
+- From your computer: keep the gateway on localhost and tunnel over SSH:
 
 ```bash
 ssh -L 18789:127.0.0.1:18789 -p 8022 <termux_user>@<phone_ip>
@@ -102,6 +102,3 @@ Then open **http://localhost:18789** on your computer.
 - [Optional features](docs/optional-features.md) (Termux:GUI, reboot)
 - [Advanced: Service mode (runit)](docs/advanced-service-mode.md)
 
-## Credits
-
-[OpenClaw](https://openclaw.ai) by Clawdy.
