@@ -1,4 +1,4 @@
-<img src="./imm/clawphone.png" alt="ClawPhone header" width="100%" />
+<img src="./imm/phoneclaw.png" alt="ClawPhone header" width="100%" />
 
 # PhoneClaw: Complete Step-by-Step Guide
 
