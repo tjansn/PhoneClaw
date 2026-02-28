@@ -65,10 +65,12 @@ fi
 [ -d "$OPENCLAW_ROOT" ] && check pass "OpenClaw package at $OPENCLAW_ROOT" || check fail "OpenClaw package missing" "Run setup_claw.sh"
 
 # Temp path patch status
+# Check for /tmp/openclaw that is NOT preceded by $PREFIX (to avoid false positives)
 UNPATCHED=0
 if [ -d "$OPENCLAW_ROOT" ]; then
   while IFS= read -r -d '' f; do
-    if grep -q '/tmp/openclaw' "$f" 2>/dev/null; then
+    # Look for /tmp/openclaw that isn't part of the full patched path
+    if grep -v "$PREFIX/tmp/openclaw" "$f" 2>/dev/null | grep -q '/tmp/openclaw' 2>/dev/null; then
       UNPATCHED=$((UNPATCHED+1))
     fi
   done < <(find "$OPENCLAW_ROOT" -type f \( -name '*.js' -o -name '*.json' -o -name '*.mjs' \) -print0 2>/dev/null || true)

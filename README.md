@@ -233,29 +233,53 @@ This checks all dependencies, paths, patches, and runtime status. Fix any FAIL i
 
 ## Phase 5: Access the Dashboard
 
+### Get Your Dashboard URL with Token
+
+The easiest way to access the dashboard is to use the built-in command that includes your authentication token:
+
+```bash
+openclaw dashboard
+```
+
+This will display a URL with your token embedded, like:
+```
+http://localhost:18789/#token=YOUR_TOKEN_HERE
+```
+
+**Important:** You must use the full URL including the `#token=...` part for authentication to work.
+
 ### Option A: On the phone itself
 
-Open a browser on the phone and go to:
-
-```
-http://localhost:18789
-```
+1. In Termux, run `openclaw dashboard`
+2. Copy the URL (the one with `#token=...`)
+3. Open a browser on the phone and paste the full URL
 
 ### Option B: From your computer (recommended)
 
-Keep the gateway bound to localhost for security and forward the port over SSH. On your computer, open a **new** terminal and run:
+Keep the gateway bound to localhost for security and forward the port over SSH:
 
-```bash
-ssh -L 18789:127.0.0.1:18789 -p 8022 u0_a123@192.168.1.42
-```
+1. On your computer, open a **new** terminal and run:
+   ```bash
+   ssh -L 18789:127.0.0.1:18789 -p 8022 u0_a123@192.168.1.42
+   ```
+   Replace the username and IP with yours from earlier steps.
 
-Replace the username and IP as before. Now open a browser on your computer and go to:
+2. In the SSH session on the phone, run:
+   ```bash
+   openclaw dashboard
+   ```
 
-```
-http://localhost:18789
-```
+3. Copy the URL with the token and open it in your computer's browser
 
-You will see the OpenClaw dashboard. Everything running on the phone is now accessible from your computer's browser.
+The dashboard should now connect successfully! Everything running on the phone is accessible from your computer's browser.
+
+### Troubleshooting Dashboard Access
+
+If you see "disconnected (1008): unauthorized: gateway token missing":
+
+- Make sure you're using the **full URL** including the `#token=...` part
+- Get a fresh URL by running `openclaw dashboard` again
+- The token is stored in `~/.openclaw/openclaw.json` under `gateway.auth.token` if you need to access it manually
 
 ---
 
@@ -326,6 +350,17 @@ OpenClaw hardcodes `/tmp/openclaw`, which does not work on Termux. The setup scr
 
 ```bash
 cd ~/phoneclaw-setup
+./scripts/fix_paths.sh
+```
+
+This dedicated script will:
+- Remove any duplicate prefix issues
+- Patch all remaining `/tmp/openclaw` references
+- Verify the temp directory is set up correctly
+
+Alternatively, you can run:
+
+```bash
 ./update_claw.sh
 ```
 
@@ -336,9 +371,27 @@ mkdir -p $PREFIX/tmp/openclaw
 source ~/.bashrc
 ```
 
+**Note:** The doctor script may report files with `/tmp/openclaw` references even when correctly patched. As long as the gateway is running and writing logs to `$PREFIX/tmp/openclaw/`, the patches are working correctly. The detection matches `/tmp/openclaw` as a substring within the corrected path.
+
 ### "No systemd" or daemon errors
 
 Expected on Android — there is no systemd. Use tmux mode (the default) or runit service mode. Never choose to install a daemon during `openclaw onboard`.
+
+### Dashboard shows "unauthorized: gateway token missing"
+
+This means you're accessing the dashboard without the authentication token. **Solution:**
+
+1. Run `openclaw dashboard` in Termux to get the full URL with token
+2. Copy the **entire URL** including the `#token=...` part
+3. Open that full URL in your browser
+
+The token must be in the URL as `http://localhost:18789/#token=YOUR_TOKEN_HERE`. Just opening `http://localhost:18789` without the token will fail.
+
+**Alternative:** If you have developer tools in your browser, you can manually set the token in localStorage:
+```javascript
+localStorage.setItem('openclaw-gateway-token', 'YOUR_TOKEN_HERE')
+```
+Then refresh the page. (Note: Mobile browsers typically don't have console access)
 
 ### Gateway stops when the phone screen turns off
 
@@ -413,9 +466,11 @@ OpenClaw does not start automatically after a phone reboot. If you want that, in
 | Stop gateway                 | `./scripts/stop_claw.sh`                                     |
 | Check status                 | `./scripts/status_claw.sh`                                   |
 | Health check                 | `./scripts/doctor_claw.sh`                                   |
+| Fix path issues              | `./scripts/fix_paths.sh`                                     |
 | Update OpenClaw              | `./update_claw.sh`                                           |
+| Get dashboard URL with token | `openclaw dashboard`                                         |
 | View tmux session            | `tmux attach -t openclaw`                                    |
 | Detach from tmux             | `Ctrl+b`, then `d`                                           |
 | Keep alive in background     | `termux-wake-lock`                                           |
-| Dashboard (phone)            | `http://localhost:18789`                                     |
-| Dashboard (computer via SSH) | `ssh -L 18789:127.0.0.1:18789 -p 8022 user@ip` then `http://localhost:18789` |
+| Dashboard URL format         | `http://localhost:18789/#token=YOUR_TOKEN`                   |
+| Dashboard (computer via SSH) | `ssh -L 18789:127.0.0.1:18789 -p 8022 user@ip` then open dashboard URL |
